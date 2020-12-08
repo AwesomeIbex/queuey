@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use crate::dispatcher::DispatcherManager;
 use crate::cli::Opts;
+use fs_extra::copy_items;
+use fs_extra::dir::CopyOptions;
 
 pub struct FileJob {
     job_id: String,
@@ -35,11 +37,13 @@ impl DispatcherManager for FileJob {
                 path.push_str("/")
             }
             path.push_str(&worker);
-            path.push_str("/");
-            path.push_str(&self.script_path.to_str().unwrap());
             println!("Copying {:?} to {}", self.script_path, path);
 
-            std::fs::copy(&self.script_path, path).unwrap();
+            let mut options = CopyOptions::new();
+            options.skip_exist = true;
+
+            copy_items(&[&self.script_path], path, &options).unwrap();
+            // std::fs::copy(&self.script_path, path).unwrap();
         })
         // find all workers in script path
         // do we have enough, if not batch them
