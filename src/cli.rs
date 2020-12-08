@@ -1,9 +1,37 @@
-    /// Take cli data
-    ///
-    /// Location or raw file
-    /// Pass a script(rust or bash script??, we could make it from a list of commands??)
-    /// into a folder with parameters as some format(YAML, JSON?)
-    /// param whether its sequential, parallel
-    /// whether it requires data posting!
-    /// file location
-    /// workers, how many? (Kubernetes could create them, should be quick to spawn)
+use std::path::PathBuf;
+use structopt::StructOpt;
+
+/// Take cli data
+///
+/// Location or raw file
+/// Pass a script(rust or bash script??, we could make it from a list of commands??)
+/// into a folder with parameters as some format(YAML, JSON?)
+/// whether it requires data callbacks!
+/// file location
+/// workers, how many? (Kubernetes could create them, should be quick to spawn)
+
+#[derive(Debug, StructOpt)]
+#[structopt(
+name = "Worky",
+about = "A simple, IO based worker queue",
+version = "0.0.1",
+author = "Donovan Dall - awesomealpineibex@gmail.com"
+)]
+pub struct Opts {
+    /// Turn the app to debug mode (logs stuff)
+    #[structopt(short, long)]
+    pub debug: bool,
+
+    // /// The amount of workers to deploy to
+    // #[structopt(short = "w", long = "workers", default_value = 5)]
+    // pub workers: i32,
+
+    /// The location of the command file
+    #[structopt(long = "file", short = "f", parse(from_os_str))]
+    pub file: PathBuf,
+}
+
+pub fn get_opts_args() -> Opts {
+    let opts = Opts::from_args();
+    opts
+}

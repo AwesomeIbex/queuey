@@ -1,6 +1,7 @@
 mod cli;
 
 fn main() {
+    pretty_env_logger::init();
     /// Receive events
     /// How?
     /// Watch FS(easy over NFS, S3 and so on, lightweight, no services stood up) - notify
