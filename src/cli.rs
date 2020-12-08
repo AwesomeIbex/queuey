@@ -32,6 +32,15 @@ pub struct Opts {
 }
 
 pub fn get_opts_args() -> Opts {
-    let opts = Opts::from_args();
-    opts
+    Opts::from_args()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_get_opts_args() {
+        
+    }
 }
