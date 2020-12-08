@@ -6,6 +6,7 @@ use std::fs;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
 use std::path::PathBuf;
+use crate::dispatcher::DispatchType;
 
 mod cli;
 mod dispatcher;
@@ -39,14 +40,14 @@ fn main() {
     // how does one dispatch a job to a worker, do we have an assumed directory which each worker will
     // create themselves a folder, when a file is dropped into their folder they just run the script in the location and then
     // append the job file with the worker prefix and whether it completed etc?
-
+    dispatcher::dispatch(&job_id, &cli_opts, DispatchType::FILE); //TODO might param this but for now its file
     loop {
         match watcher_rx.recv() {
             Ok(event) => {
                 match event {
                     DebouncedEvent::NoticeWrite(_) => {} // Might need to close file access
                     DebouncedEvent::NoticeRemove(_) => {} // Same as above
-                    DebouncedEvent::Create(_) => {} // Log depending on prefix of the name
+                    DebouncedEvent::Create(_) => {} // Log depending on prefix of the name OR could use permissions
                     DebouncedEvent::Write(_) => {} // Log depending on prefix of the name
                     DebouncedEvent::Chmod(_) => {} // Could be smart depending on permissions maybe
                     DebouncedEvent::Remove(_) => {} // Job is finished or worker deregistered store that elsewhere
@@ -54,7 +55,6 @@ fn main() {
                     DebouncedEvent::Rescan => {} // Log
                     DebouncedEvent::Error(_, _) => {} // Log
                 }
-                dispatcher::dispatch(event)
             },
             Err(e) => dispatcher::dispatch_error(e),
         }
