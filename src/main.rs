@@ -2,6 +2,9 @@ use std::sync::mpsc::channel;
 use notify::{watcher, RecursiveMode, Watcher, DebouncedEvent};
 use std::time::Duration;
 use crate::cli::Opts;
+use std::fs;
+use rand::Rng;
+use rand::distributions::Alphanumeric;
 
 mod cli;
 mod dispatcher;
@@ -30,7 +33,9 @@ fn main() {
     let (watcher_tx, watcher_rx) = channel();
     let mut watcher = watcher(watcher_tx, Duration::from_millis(300)).unwrap(); //TODO test delay
     let watcher_path = determine_path(&cli_opts.persistent);
-    watcher.watch(watcher_path, RecursiveMode::Recursive).unwrap();
+    create_directories(&watcher_path);
+    // TODO create directory of path if it doesnt exist, this will also generate worker directories maybe
+    watcher.watch(&watcher_path, RecursiveMode::Recursive).unwrap();
 
     loop {
         match watcher_rx.recv() {
@@ -59,10 +64,16 @@ fn main() {
     //
 }
 
-fn determine_path(persistent: &bool) -> &str {
+fn determine_path(persistent: &bool) -> String {
     if *persistent {
-        "./script_results"
+        String::from("./script_results")
     } else {
-        "/tmp/ENTERRANDOMJOBNUMBER"
+        let mut placeholder = String::from("/tmp/worky_");
+        let mut file_name = rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>();
+        placeholder.push_str(&file_name);
+        placeholder
     }
+}
+fn create_directories(path: &str) -> std::io::Result<()> {
+    fs::create_dir_all(path)
 }
