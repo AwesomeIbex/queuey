@@ -28,7 +28,7 @@ impl DispatcherManager for FileJob {
             .map(|directory| directory.unwrap())
             .filter(|directory| directory.file_name().into_string().is_ok())
             .map(|directory| directory.file_name().into_string().unwrap())
-            .filter(|directory| directory.contains("WORKER_"))
+            .filter(|directory| directory.starts_with("WORKER_"))
             .collect::<Vec<String>>();
 
         workers.iter().for_each(|worker| {
