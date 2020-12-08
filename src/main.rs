@@ -34,8 +34,11 @@ fn main() {
     let mut watcher = watcher(watcher_tx, Duration::from_millis(300)).unwrap(); //TODO test delay
     let watcher_path = determine_path(&cli_opts.persistent);
     create_directories(&watcher_path);
-    // TODO create directory of path if it doesnt exist, this will also generate worker directories maybe
     watcher.watch(&watcher_path, RecursiveMode::Recursive).unwrap();
+
+    // how does one dispatch a job to a worker, do we have an assumed directory which each worker will
+    // create themselves a folder, when a file is dropped into their folder they just run the script in the location and then
+    // append the job file with the worker prefix and whether it completed etc?
 
     loop {
         match watcher_rx.recv() {
