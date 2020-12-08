@@ -26,9 +26,13 @@ pub struct Opts {
     // #[structopt(short = "w", long = "workers", default_value = 5)]
     // pub workers: i32,
 
-    /// The location of the command file
-    #[structopt(long = "file", short = "f", parse(from_os_str))]
-    pub file: PathBuf,
+    /// The location of the script
+    #[structopt(long = "script", short = "s", parse(from_os_str))]
+    pub script_path: PathBuf,
+
+    /// Whether the results are persistent, otherwise can store in /tmp
+    #[structopt(long = "persistent")]
+    pub persistent: bool,
 }
 
 pub fn get_opts_args() -> Opts {

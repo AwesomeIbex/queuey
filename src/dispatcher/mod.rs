@@ -7,6 +7,10 @@ use std::fmt::Debug;
 // GRPC to worker implementation(will require registering with some discovery method), networks are heavyweight
 //
 
+trait DispatcherWorker<T> {
+    fn dispatch(event: T);
+}
+
 pub fn dispatch<T: Debug>(event: T) {
     // determine how to dispatch
     println!("{:?}", event);
