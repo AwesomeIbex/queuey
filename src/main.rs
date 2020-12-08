@@ -5,6 +5,7 @@ use crate::cli::Opts;
 use std::fs;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
+use std::path::PathBuf;
 
 mod cli;
 mod dispatcher;
@@ -22,7 +23,7 @@ fn main() {
     pretty_env_logger::init();
 
     let cli_opts = cli::get_opts_args();
-
+    let job_id = rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>();
     // Receive events
     // How?
     // Watch FS(easy over NFS, S3 and so on, lightweight, no services stood up) - notify
@@ -32,9 +33,8 @@ fn main() {
     // Watcher related stuff
     let (watcher_tx, watcher_rx) = channel();
     let mut watcher = watcher(watcher_tx, Duration::from_millis(300)).unwrap(); //TODO test delay
-    let watcher_path = determine_path(&cli_opts.persistent);
-    create_directories(&watcher_path);
-    watcher.watch(&watcher_path, RecursiveMode::Recursive).unwrap();
+    fs::create_dir_all(&cli_opts.jobs_path);
+    watcher.watch(&cli_opts.jobs_path, RecursiveMode::Recursive).unwrap();
 
     // how does one dispatch a job to a worker, do we have an assumed directory which each worker will
     // create themselves a folder, when a file is dropped into their folder they just run the script in the location and then
@@ -49,7 +49,7 @@ fn main() {
                     DebouncedEvent::Create(_) => {} // Log depending on prefix of the name
                     DebouncedEvent::Write(_) => {} // Log depending on prefix of the name
                     DebouncedEvent::Chmod(_) => {} // Could be smart depending on permissions maybe
-                    DebouncedEvent::Remove(_) => {} // Job is finished, store that elsewhere
+                    DebouncedEvent::Remove(_) => {} // Job is finished or worker deregistered store that elsewhere
                     DebouncedEvent::Rename(_, _) => {} // Job is finished, store that elsewhere
                     DebouncedEvent::Rescan => {} // Log
                     DebouncedEvent::Error(_, _) => {} // Log
@@ -65,18 +65,4 @@ fn main() {
     //
     // Might require a separate event loop to dispatch events(generally clean anyway)
     //
-}
-
-fn determine_path(persistent: &bool) -> String {
-    if *persistent {
-        String::from("./script_results")
-    } else {
-        let mut placeholder = String::from("/tmp/worky_");
-        let mut file_name = rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>();
-        placeholder.push_str(&file_name);
-        placeholder
-    }
-}
-fn create_directories(path: &str) -> std::io::Result<()> {
-    fs::create_dir_all(path)
 }

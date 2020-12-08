@@ -30,9 +30,9 @@ pub struct Opts {
     #[structopt(long = "script", short = "s", parse(from_os_str))]
     pub script_path: PathBuf,
 
-    /// Whether the results are persistent, otherwise can store in /tmp
-    #[structopt(long = "persistent")]
-    pub persistent: bool,
+    /// The directory the worky jobs will be stored and read from
+    #[structopt(long = "jobs_dir", short = "j", parse(from_os_str), default_value = "/tmp/worky")]
+    pub jobs_path: PathBuf,
 }
 
 pub fn get_opts_args() -> Opts {
