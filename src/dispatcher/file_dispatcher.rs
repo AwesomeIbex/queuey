@@ -4,6 +4,7 @@ use crate::cli::Opts;
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
 use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::ParallelIterator;
 
 const WORKER_PREFIX: &str = "WORKER_";
 
