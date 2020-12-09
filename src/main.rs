@@ -55,6 +55,7 @@ fn main() {
                     DebouncedEvent::Rescan => {} // Log
                     DebouncedEvent::Error(_, _) => {} // Log
                 }
+                println!("Recieved event {:?}", event);
             },
             Err(e) => dispatcher::dispatch_error(e),
         }

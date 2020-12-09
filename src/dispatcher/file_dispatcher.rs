@@ -3,6 +3,7 @@ use crate::dispatcher::DispatcherManager;
 use crate::cli::Opts;
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
+use rayon::iter::IntoParallelRefIterator;
 
 const WORKER_PREFIX: &str = "WORKER_";
 
@@ -49,7 +50,7 @@ impl DispatcherManager for FileJob {
         let mut options = CopyOptions::new();
         options.skip_exist = true;
 
-        workers.iter().for_each(|worker| {
+        workers.par_iter().for_each(|worker| {
             let mut path = self.build_path(&worker);
             std::fs::create_dir_all(&path);
             println!("Copying {:?} to {}", self.script_path, path);
