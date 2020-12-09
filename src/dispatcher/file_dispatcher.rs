@@ -4,6 +4,8 @@ use crate::cli::Opts;
 use fs_extra::copy_items;
 use fs_extra::dir::CopyOptions;
 
+const WORKER_PREFIX: &str = "WORKER_";
+
 pub struct FileJob {
     job_id: String,
     script_path: PathBuf,
@@ -18,6 +20,16 @@ impl FileJob {
             jobs_path: cli_opts.jobs_path.clone()
         }
     }
+    fn build_path(&self, worker: &String) -> String {
+        let mut path = self.jobs_path.to_str().unwrap().to_string();
+        if !path.ends_with("/") {
+            path.push_str("/")
+        }
+        path.push_str(&worker);
+        path.push_str("/");
+        path.push_str(&self.job_id);
+        path
+    }
 }
 
 impl DispatcherManager for FileJob {
@@ -28,26 +40,23 @@ impl DispatcherManager for FileJob {
             .map(|directory| directory.unwrap())
             .filter(|directory| directory.file_name().into_string().is_ok())
             .map(|directory| directory.file_name().into_string().unwrap())
-            .filter(|directory| directory.starts_with("WORKER_"))
+            .filter(|directory| directory.starts_with(&WORKER_PREFIX))
             .collect::<Vec<String>>();
 
+        // TODO do we have enough, if not batch them/create them
+
+        // TODO move me
+        let mut options = CopyOptions::new();
+        options.skip_exist = true;
+
         workers.iter().for_each(|worker| {
-            let mut path = self.jobs_path.to_str().unwrap().to_string();
-            if !path.ends_with("/") {
-                path.push_str("/")
-            }
-            path.push_str(&worker);
+            let mut path = self.build_path(&worker);
+            std::fs::create_dir_all(&path);
             println!("Copying {:?} to {}", self.script_path, path);
 
-            let mut options = CopyOptions::new();
-            options.skip_exist = true;
-
+            // write script file & job file to directory with key to determine we need to complete it
             copy_items(&[&self.script_path], path, &options).unwrap();
-            // std::fs::copy(&self.script_path, path).unwrap();
+            // make sure permissions are correct
         })
-        // find all workers in script path
-        // do we have enough, if not batch them
-        // write script file & job file to directory with key to determine we need to complete it
-        // make sure permissions are correct
     }
 }
