@@ -28,7 +28,7 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
                 let status = o.status.as_ref().expect("status exists on deployment");
                 let available = status.available_replicas.clone().unwrap_or_default();
                 let unavailable = status.unavailable_replicas.clone().unwrap_or_default();
-                println!("Modified: {}, current available replicas: {}, unavailable: {}", Meta::name(&o), available, unavailable);
+                println!("Modified: {}, current available replicas: {}, unavailable: {}, conditions {:?}", Meta::name(&o), available, unavailable, status.conditions);
             }
             WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
             WatchEvent::Error(e) => println!("Error {:?}", e),
@@ -49,9 +49,6 @@ fn get_deployment() -> Result<Deployment, Error> {
         "containers": [
           {
             "image": "awesomeibex/worky:latest",
-            "command": [
-              "worky"
-            ],
             "name": "worky",
             "resources": {
               "requests": {
