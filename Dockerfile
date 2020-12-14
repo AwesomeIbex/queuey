@@ -4,23 +4,24 @@
 
 FROM rust:latest as cargo-build
 
-WORKDIR /usr/src/worky
+WORKDIR /usr/src/queuey
 
 COPY Cargo.toml Cargo.toml
 
+RUN mkdir src/
 RUN mkdir src/
 
 RUN echo "fn main() {println!(\"if you see this, the build broke\")}" > src/main.rs
 
 RUN cargo build --release
 
-RUN rm -f target/release/deps/worky*
+RUN rm -f target/release/deps/queuey*
 
 COPY . .
 
 RUN cargo build --release
 
-RUN cargo install --path .
+RUN cargo install --path .iclo
 
 # ------------------------------------------------------------------------------
 # Final Stage
@@ -28,7 +29,7 @@ RUN cargo install --path .
 
 FROM alpine:latest
 
-COPY --from=cargo-build /usr/local/cargo/bin/worky /usr/local/bin/worky
+COPY --from=cargo-build /usr/local/cargo/bin/queuey /usr/local/bin/queuey
 
 #TODO add commands
-CMD ["worky"] 
+CMD ["queuey"]

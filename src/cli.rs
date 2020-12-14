@@ -12,8 +12,8 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-name = "Worky",
-about = "A simple, IO based worker queue",
+name = "Queuey",
+about = "A simple, IO based worker queue manager",
 version = "0.0.1",
 author = "Donovan Dall - awesomealpineibex@gmail.com"
 )]
@@ -30,8 +30,8 @@ pub struct Opts {
     #[structopt(long = "script", short = "s", parse(from_os_str))]
     pub script_path: PathBuf,
 
-    /// The directory the worky jobs will be stored and read from
-    #[structopt(long = "jobs_dir", short = "j", parse(from_os_str), default_value = "/tmp/worky")]
+    /// The directory the queuey jobs will be stored and read from
+    #[structopt(long = "jobs_dir", short = "j", parse(from_os_str), default_value = "/tmp/queuey")]
     pub jobs_path: PathBuf,
 }
 
