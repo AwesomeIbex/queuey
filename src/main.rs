@@ -10,7 +10,7 @@ use crate::dispatcher::DispatchType;
 
 mod cli;
 mod dispatcher;
-
+mod kubernetes;
 
 ///
 /// User will pass in a command file, this could be a raw file or a location to the file
@@ -26,7 +26,13 @@ fn main() {
     let cli_opts = cli::get_opts_args();
     let job_id = rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>();
 
-    // could get workers here
+    let (tokio_tx, tokio_rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        if let Err(err) = kubernetes::create_workers(tokio_rx) {
+            log::error!("Failed to create workers: {}", err)
+        }
+    });
+    tokio_tx.send((cli_opts.workers, cli_opts.jobs_path.clone())).unwrap();
 
     let (watcher_tx, watcher_rx) = channel();
     let mut watcher = watcher(watcher_tx, Duration::from_millis(300)).unwrap(); //TODO test delay

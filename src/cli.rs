@@ -22,9 +22,9 @@ pub struct Opts {
     #[structopt(short, long)]
     pub debug: bool,
 
-    // /// The amount of workers to deploy to
-    // #[structopt(short = "w", long = "workers", default_value = 5)]
-    // pub workers: i32,
+    /// The amount of workers to deploy to
+    #[structopt(short = "w", long = "workers", default_value = "5")]
+    pub workers: i32,
 
     /// The location of the script
     #[structopt(long = "script", short = "s", parse(from_os_str))]
