@@ -12,7 +12,7 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
 
     let client = Client::try_default().await.unwrap();
     let deployments: Api<Deployment> = Api::namespaced(client, "default");
-    let deployment = get_deployment()?; // TODO rx recv on those
+    let deployment = get_deployment().unwrap(); // TODO rx recv on those
     deployments.create(&PostParams::default(), &deployment).await?; // Check if it exists, if it does then we scale
 
     let lp = ListParams::default()
@@ -28,7 +28,7 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
                 let status = o.status.as_ref().expect("status exists on deployment");
                 let available = status.available_replicas.clone().unwrap_or_default();
                 let unavailable = status.unavailable_replicas.clone().unwrap_or_default();
-                println!("Modified: {}, current available replicas: {}, unavailable: {}, conditions {:?}", Meta::name(&o), available, unavailable, status.conditions);
+                println!("Modified: {}, current available replicas: {}, unavailable: {}", Meta::name(&o), available, unavailable);
             }
             WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
             WatchEvent::Error(e) => println!("Error {:?}", e),
@@ -46,10 +46,25 @@ fn get_deployment() -> Result<Deployment, Error> {
     "replicas": 10,
     "template": {
       "spec": {
+        "volumes" : [
+            {
+                "name": "queuey",
+                "hostPath": {
+                    "path": "/tmp/queuey-k8s",
+                    "type": "DirectoryOrCreate"
+                }
+            }
+        ],
         "containers": [
           {
             "image": "awesomeibex/worky:latest",
             "name": "worky",
+            "volumeMounts": [
+              {
+                "mountPath": "/tmp/queuey",
+                "name": "queuey"
+              }
+            ],
             "resources": {
               "requests": {
                 "cpu": "80m",
