@@ -7,6 +7,7 @@ use rand::Rng;
 use rand::distributions::Alphanumeric;
 use std::path::PathBuf;
 use crate::dispatcher::DispatchType;
+use std::thread::sleep;
 
 mod cli;
 mod dispatcher;
@@ -26,6 +27,8 @@ fn main() {
     let cli_opts = cli::get_opts_args();
     let job_id = rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>();
 
+    let mut should_sleep = true;
+
     let (tokio_tx, tokio_rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         if let Err(err) = kubernetes::create_workers(tokio_rx) {
@@ -33,6 +36,11 @@ fn main() {
         }
     });
     tokio_tx.send((cli_opts.workers, cli_opts.jobs_path.clone())).unwrap();
+
+    if should_sleep {
+        println!("Sleeping 20 seconds as we have no workers..");
+        sleep(Duration::from_secs(20))
+    }
 
     let (watcher_tx, watcher_rx) = channel();
     let mut watcher = watcher(watcher_tx, Duration::from_millis(300)).unwrap(); //TODO test delay
