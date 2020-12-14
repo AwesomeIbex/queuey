@@ -48,10 +48,9 @@ fn get_deployment() -> Result<Deployment, Error> {
       "spec": {
         "containers": [
           {
-            "image": "k8s.gcr.io/heapster:v1.2.0",
+            "image": "awesomeibex/worky:latest",
             "command": [
-              "/heapster",
-              "--source=kubernetes.summary_api:''"
+              "worky"
             ],
             "name": "worky",
             "resources": {
@@ -85,8 +84,7 @@ fn get_deployment() -> Result<Deployment, Error> {
   "metadata": {
     "labels": {
       "k8s-app": "worky",
-      "version": "v0.0.1",
-      "kubernetes.io/cluster-service": "true"
+      "version": "v0.0.1"
     },
     "namespace": "default",
     "name": "worky-v0.0.1"
