@@ -6,11 +6,12 @@ use kube::api::{Api, ListParams, Meta, PatchParams, PostParams, WatchEvent};
 use kube::Client;
 use serde_json::Error;
 
-#[tokio::main]
+#[tokio::main] // Might just have one event loop rather than a runtime for each command, maybe
 pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Result<(), kube::Error> {
     let client = Client::try_default().await.unwrap();
     let deployments: Api<Deployment> = Api::namespaced(client, "default");
     match deployments.get("worky").await {
+        // TODO this should return if it should scale, that means that would determine how long to wait
         Ok(exists) => {
             println!("Deployment already exists, checking scale..");
             let deployment_replicas = rx.recv().unwrap().0;
