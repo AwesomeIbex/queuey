@@ -38,7 +38,6 @@ fn main() {
     tokio_tx.send((cli_opts.workers, cli_opts.jobs_path.clone())).unwrap();
 
     if should_sleep {
-        println!("Sleeping 20 seconds as we have no workers..");
         sleep(Duration::from_secs(20))
     }
 
