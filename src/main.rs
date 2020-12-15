@@ -1,11 +1,9 @@
 use std::sync::mpsc::channel;
 use notify::{watcher, RecursiveMode, Watcher, DebouncedEvent};
 use std::time::Duration;
-use crate::cli::Opts;
 use std::fs;
 use rand::Rng;
 use rand::distributions::Alphanumeric;
-use std::path::PathBuf;
 use crate::dispatcher::DispatchType;
 use std::thread::sleep;
 
@@ -27,7 +25,7 @@ fn main() {
     let cli_opts = cli::get_opts_args();
     let job_id = rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>();
 
-    let mut should_sleep = true;
+    let should_sleep = true;
 
     let (tokio_tx, tokio_rx) = std::sync::mpsc::channel();
     std::thread::spawn(move || {

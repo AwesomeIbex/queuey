@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::apps::v1::Deployment;
-use k8s_openapi::api::core::v1::{Node, Pod};
 use kube::api::{Api, ListParams, Meta, PatchParams, PostParams, WatchEvent};
 use kube::Client;
 use serde_json::Error;
@@ -27,7 +26,7 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
                            "replicas": deployment_replicas
                         }
                     })).unwrap();
-                let o_patched = deployments.patch("worky", &params, patch).await?;
+                deployments.patch("worky", &params, patch).await?;
             }
         }
         Err(_) => {

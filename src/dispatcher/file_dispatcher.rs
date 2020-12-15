@@ -52,7 +52,7 @@ impl DispatcherManager for FileJob {
         options.skip_exist = true;
 
         workers.par_iter().for_each(|worker| {
-            let mut path = self.build_path(&worker);
+            let path = self.build_path(&worker);
             // Permissions are messed up here
             std::fs::create_dir_all(&path).unwrap();
             println!("Copying {:?} to {}", self.script_path, path);
