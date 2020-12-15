@@ -27,14 +27,15 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
                         }
                     })).unwrap();
                 deployments.patch("worky", &params, patch).await?;
+                println!("Workers scaled")
             }
         }
         Err(_) => {
             let deployment = build_deployment_request().unwrap(); // TODO rx recv on those
-            deployments.create(&PostParams::default(), &deployment).await?; // Check if it exists, if it does then we scale
+            deployments.create(&PostParams::default(), &deployment).await.unwrap(); // Check if it exists, if it does then we scale
 
             let lp = ListParams::default()
-                .fields(&format!("metadata.name={}", "worky-v0.0.1"))
+                .fields(&format!("metadata.name={}", "worky"))
                 .timeout(10);
             let mut stream = deployments.watch(&lp, "0").await?.boxed();
 
@@ -95,6 +96,21 @@ fn build_deployment_request() -> Result<Deployment, Error> {
                 "memory": "128Mi"
               }
             }
+          }
+        ],
+        "initContainers": [
+          {
+            "image": "busybox",
+            "name": "fix-volumes",
+            "command": [
+                "sh", "-c", "adduser -D donovand && addgroup donovand donovand && chown donovand:donovand -R /queuey"
+            ],
+            "volumeMounts": [
+              {
+                "mountPath": "/queuey",
+                "name": "queuey"
+              }
+            ]
           }
         ]
       },
