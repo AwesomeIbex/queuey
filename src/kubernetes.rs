@@ -14,14 +14,14 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
     match deployments.get("worky").await {
         Ok(exists) => {
             println!("Deployment already exists, checking scale..");
-            let deployment_replicas = rx.recv().unwrap().0?;
+            let deployment_replicas = rx.recv().unwrap().0;
             if exists.spec.unwrap().replicas.unwrap() == deployment_replicas {
                 println!("Has the right amount of replicas, not scaling..")
             } else {
-                println!("Implement replication change policy here");
+                println!("Scaling to {} workers..", deployment_replicas);
                 let params = PatchParams::apply("worky").force();
                 let patch = serde_yaml::to_vec(&serde_json::json!({
-                        "apiVersion": "v1",
+                        "apiVersion": "apps/v1",
                         "kind": "Deployment",
                         "spec": {
                            "replicas": deployment_replicas

@@ -23,7 +23,7 @@ pub struct Opts {
     pub debug: bool,
 
     /// The amount of workers to deploy to
-    #[structopt(short = "w", long = "workers", default_value = "5")]
+    #[structopt(short = "w", long = "workers", default_value = "15")]
     pub workers: i32,
 
     /// The location of the script
