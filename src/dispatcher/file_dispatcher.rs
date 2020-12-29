@@ -52,8 +52,9 @@ impl DispatcherManager for FileJob {
         options.skip_exist = true;
 
         workers.par_iter().for_each(|worker| {
-            let mut path = self.build_path(&worker);
-            std::fs::create_dir_all(&path);
+            let path = self.build_path(&worker);
+            // Permissions are messed up here
+            std::fs::create_dir_all(&path).unwrap();
             println!("Copying {:?} to {}", self.script_path, path);
 
             // write script file & job file to directory with key to determine we need to complete it

@@ -1,35 +1,20 @@
-# ------------------------------------------------------------------------------
-# Cargo Build Stage
-# ------------------------------------------------------------------------------
+# You can override this `--build-arg BASE_IMAGE=...` to use different
+# version of Rust or OpenSSL.
+ARG BASE_IMAGE=ekidd/rust-musl-builder:latest
 
-FROM rust:latest as cargo-build
+# Our first FROM statement declares the build environment.
+FROM ${BASE_IMAGE} AS builder
 
-WORKDIR /usr/src/queuey
+# Add our source code.
+ADD --chown=rust:rust . ./
 
-COPY Cargo.toml Cargo.toml
-
-RUN mkdir src/
-RUN mkdir src/
-
-RUN echo "fn main() {println!(\"if you see this, the build broke\")}" > src/main.rs
-
+# Build our application.
 RUN cargo build --release
 
-RUN rm -f target/release/deps/queuey*
-
-COPY . .
-
-RUN cargo build --release
-
-RUN cargo install --path .iclo
-
-# ------------------------------------------------------------------------------
-# Final Stage
-# ------------------------------------------------------------------------------
-
+# Now, we need to build our _real_ Docker container, copying in `using-diesel`.
 FROM alpine:latest
-
-COPY --from=cargo-build /usr/local/cargo/bin/queuey /usr/local/bin/queuey
-
-#TODO add commands
-CMD ["queuey"]
+RUN apk --no-cache add ca-certificates
+COPY --from=builder \
+    /home/rust/src/target/x86_64-unknown-linux-musl/release/queuey \
+    /usr/local/bin/
+CMD /usr/local/bin/queuey
