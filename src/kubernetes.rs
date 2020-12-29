@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::{Context, Error, anyhow};
+use anyhow::{anyhow, Context, Error};
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::apps::v1::Deployment;
 use kube::api::{Api, ListParams, Meta, PatchParams, PostParams, WatchEvent};
@@ -118,6 +118,9 @@ fn build_deployment_request(opts: &Opts) -> Result<Deployment, Error> {
                 "mountPath": "/tmp/queuey",
                 "name": "queuey"
               }
+            ],
+            "env": [
+                { "name": "RUST_LOG", "value": "debug" }
             ],
             "resources": {
               "requests": {
