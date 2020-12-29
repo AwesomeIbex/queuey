@@ -1,5 +1,8 @@
 use std::path::PathBuf;
 use structopt::StructOpt;
+use std::str::FromStr;
+use std::string::ParseError;
+use anyhow::{Error, anyhow};
 
 /// Take cli data
 ///
@@ -9,6 +12,21 @@ use structopt::StructOpt;
 /// whether it requires data callbacks!
 /// file location
 /// workers, how many? (Kubernetes could create them, should be quick to spawn)
+
+#[derive(Debug)]
+pub enum Platform {
+    Local, Kubernetes
+}
+impl FromStr for Platform {
+    type Err = Error;
+    fn from_str(day: &str) -> Result<Self, Error> {
+        match day {
+            "kubernetes" | "k8s" => Ok(Platform::Kubernetes),
+            "local" => Ok(Platform::Local),
+            _ => Err(anyhow!("Could not parse a platform")),
+        }
+    }
+}
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -21,6 +39,10 @@ pub struct Opts {
     /// Turn the app to debug mode (logs stuff)
     #[structopt(short, long)]
     pub debug: bool,
+
+    // Determine the platform for execution
+    #[structopt(short = "p", long = "platform", default_value = "local")]
+    pub platform: Platform,
 
     /// The amount of workers to deploy to
     #[structopt(short = "w", long = "workers", default_value = "15")]

@@ -1,72 +1,96 @@
 use std::path::PathBuf;
 
+use anyhow::{Context, Error, anyhow};
 use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::apps::v1::Deployment;
 use kube::api::{Api, ListParams, Meta, PatchParams, PostParams, WatchEvent};
 use kube::Client;
-use serde_json::{Error, Value};
+use kube::error::ErrorResponse;
+use serde_json::{Error as SerdeError, Value};
 
-const worky_deployment: &'static str = "worky";
+use crate::cli::Opts;
 
-#[tokio::main] // Might just have one event loop rather than a runtime for each command, maybe
-pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Result<(), kube::Error> {
-    let client = Client::try_default().await.unwrap();
+const WORKY_DEPLOYMENT: &'static str = "worky";
+
+pub async fn create_workers(opts: &Opts) -> Result<i32, Error> {
+    let client = Client::try_default().await?;
     let deployments: Api<Deployment> = Api::namespaced(client, "default");
-    match deployments.get(worky_deployment).await {
-        // TODO this should return if it should scale, that means that would determine how long to wait
+    let mut should_watch = true;
+    match deployments.get(WORKY_DEPLOYMENT).await {
         Ok(exists) => {
-            println!("Deployment already exists, checking scale..");
-            let deployment_replicas = rx.recv().unwrap().0;
-            if exists.spec.unwrap().replicas.unwrap() == deployment_replicas {
-                log::info!("Has the right amount of replicas, not scaling..")
+            log::trace!("Deployment already exists, checking scale..");
+            let deployment_replicas = opts.workers;
+            if exists
+                .spec.context("Spec does not exist")?
+                .replicas.context("Replicas do not exist")? == deployment_replicas {
+                log::info!("Has the right amount of replicas, not scaling..");
+                should_watch = false;
             } else {
                 log::info!("Scaling to {} workers..", deployment_replicas);
-                let params = PatchParams::apply(worky_deployment).force();
-                let patch = serde_yaml::to_vec(&build_patch_deployment_request(&deployment_replicas)).unwrap();
-                deployments.patch(worky_deployment, &params, patch).await?;
+                let params = PatchParams::apply(WORKY_DEPLOYMENT).force();
+                let patch = serde_yaml::to_vec(&build_patch_deployment_request(&deployment_replicas))?;
+                deployments.patch(WORKY_DEPLOYMENT, &params, patch).await?;
             }
         }
         Err(_) => {
-            let deployment = build_deployment_request().unwrap(); // TODO rx recv on those
-            deployments.create(&PostParams::default(), &deployment).await.unwrap(); // Check if it exists, if it does then we scale
-
-            let lp = ListParams::default()
-                .fields(&format!("metadata.name={}", worky_deployment))
-                .timeout(10);
-            let mut stream = deployments.watch(&lp, "0").await?.boxed();
-
-            // Observe the pods phase for 10 seconds
-            while let Some(status) = stream.try_next().await? {
-                match status {
-                    WatchEvent::Added(o) => println!("Added {}", Meta::name(&o)),
-                    WatchEvent::Modified(o) => {
-                        let status = o.status.as_ref().expect("status exists on deployment");
-                        let available = status.available_replicas.clone().unwrap_or_default();
-                        let unavailable = status.unavailable_replicas.clone().unwrap_or_default();
-                        println!("Modified: {}, current available replicas: {}, unavailable: {}", Meta::name(&o), available, unavailable);
-                    }
-                    WatchEvent::Deleted(o) => println!("Deleted {}", Meta::name(&o)),
-                    WatchEvent::Error(e) => println!("Error {:?}", e),
-                    _ => {}
-                }
-            }
+            let deployment = build_deployment_request()?;
+            deployments.create(&PostParams::default(), &deployment).await?;
         }
     }
 
-    Ok(())
+    if should_watch {
+        Ok(watch_deployment(deployments).await?)
+    } else {
+        Ok(opts.workers)
+    }
+}
+
+async fn watch_deployment(deployments: Api<Deployment>) -> Result<i32, Error> {
+    let params = ListParams::default()
+        .fields(&format!("metadata.name={}", WORKY_DEPLOYMENT))
+        .timeout(20);
+    let mut stream = deployments
+        .watch(&params, "0")
+        .await
+        .context("Failed to watch deployment")?
+        .boxed();
+
+    let mut available_result = Ok(0);
+    while let Some(status) = stream.try_next().await.context("There was an error reading the next stream")? {
+        match status {
+            WatchEvent::Added(o) => println!("Added {}", Meta::name(&o)),
+            WatchEvent::Modified(o) => {
+                let status = o.status.as_ref().expect("status exists on deployment");
+                let replicas = status.available_replicas.clone().unwrap_or_default();
+                let unavailable = status.unavailable_replicas.clone().unwrap_or_default();
+                log::trace!("Modified: {}, current available replicas: {}, unavailable: {}", Meta::name(&o), replicas, unavailable);
+                available_result = Ok(replicas)
+            }
+            WatchEvent::Deleted(o) => log::trace!("Deleted {}", Meta::name(&o)),
+            WatchEvent::Error(e) => {
+                log::error!("Error {:?}", e);
+                available_result = Err(anyhow!(e));
+            }
+            _ => log::trace!("Some status event {:?}", status)
+        }
+    }
+    available_result
 }
 
 fn build_patch_deployment_request(deployment_replicas: &i32) -> Value {
-    serde_json::json!({
-                        "apiVersion": "apps/v1",
-                        "kind": "Deployment",
-                        "spec": {
-                           "replicas": deployment_replicas
-                        }
-                    })
+    serde_json::json!(
+        {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "spec": {
+               "replicas": deployment_replicas
+            }
+        }
+    )
 }
 
-fn build_deployment_request() -> Result<Deployment, Error> {
+//TODO tidy this up better
+fn build_deployment_request() -> Result<Deployment, SerdeError> {
     serde_json::from_value(serde_json::json!({
   "kind": "Deployment",
   "spec": {

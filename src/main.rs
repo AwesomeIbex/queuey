@@ -1,11 +1,14 @@
-use std::sync::mpsc::channel;
-use notify::{watcher, RecursiveMode, Watcher, DebouncedEvent};
-use std::time::Duration;
 use std::fs;
-use rand::Rng;
-use rand::distributions::Alphanumeric;
-use crate::dispatcher::DispatchType;
+use std::sync::mpsc::channel;
 use std::thread::sleep;
+use std::time::Duration;
+
+use notify::{DebouncedEvent, RecursiveMode, watcher, Watcher};
+use rand::distributions::Alphanumeric;
+use rand::Rng;
+
+use crate::dispatcher::DispatchType;
+use crate::cli::Platform;
 
 mod cli;
 mod dispatcher;
@@ -19,24 +22,20 @@ mod kubernetes;
 /// the type of job
 /// the directory to store updates and dispatch
 ///
-fn main() {
+#[tokio::main]
+async fn main() {
     pretty_env_logger::init();
 
     let cli_opts = cli::get_opts_args();
-    let job_id = rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>();
+    let job_id = get_random_job_id();
 
-    let should_sleep = true;
-
-    let (tokio_tx, tokio_rx) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        if let Err(err) = kubernetes::create_workers(tokio_rx) {
-            log::error!("Failed to create workers: {}", err)
+    match cli_opts.platform {
+        Platform::Local => {}
+        Platform::Kubernetes => {
+            if let Err(err) = kubernetes::create_workers(&cli_opts).await {
+                log::error!("Failed to create workers: {}", err)
+            }
         }
-    });
-    tokio_tx.send((cli_opts.workers, cli_opts.jobs_path.clone())).unwrap();
-
-    if should_sleep {
-        sleep(Duration::from_secs(20))
     }
 
     let (watcher_tx, watcher_rx) = channel();
@@ -64,7 +63,7 @@ fn main() {
                         log::trace!("An event was triggered {:?}", event)
                     }
                 }
-            },
+            }
             Err(e) => dispatcher::dispatch_error(e),
         }
     }
@@ -74,4 +73,8 @@ fn main() {
     //
     // Might require a separate event loop to dispatch events(generally clean anyway)
     //
+}
+
+fn get_random_job_id() -> String {
+    rand::thread_rng().sample_iter(&Alphanumeric).take(20).collect::<String>()
 }
