@@ -4,31 +4,26 @@ use futures::{StreamExt, TryStreamExt};
 use k8s_openapi::api::apps::v1::Deployment;
 use kube::api::{Api, ListParams, Meta, PatchParams, PostParams, WatchEvent};
 use kube::Client;
-use serde_json::Error;
+use serde_json::{Error, Value};
+
+const worky_deployment: &'static str = "worky";
 
 #[tokio::main] // Might just have one event loop rather than a runtime for each command, maybe
 pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Result<(), kube::Error> {
     let client = Client::try_default().await.unwrap();
     let deployments: Api<Deployment> = Api::namespaced(client, "default");
-    match deployments.get("worky").await {
+    match deployments.get(worky_deployment).await {
         // TODO this should return if it should scale, that means that would determine how long to wait
         Ok(exists) => {
             println!("Deployment already exists, checking scale..");
             let deployment_replicas = rx.recv().unwrap().0;
             if exists.spec.unwrap().replicas.unwrap() == deployment_replicas {
-                println!("Has the right amount of replicas, not scaling..")
+                log::info!("Has the right amount of replicas, not scaling..")
             } else {
-                println!("Scaling to {} workers..", deployment_replicas);
-                let params = PatchParams::apply("worky").force();
-                let patch = serde_yaml::to_vec(&serde_json::json!({
-                        "apiVersion": "apps/v1",
-                        "kind": "Deployment",
-                        "spec": {
-                           "replicas": deployment_replicas
-                        }
-                    })).unwrap();
-                deployments.patch("worky", &params, patch).await?;
-                println!("Workers scaled")
+                log::info!("Scaling to {} workers..", deployment_replicas);
+                let params = PatchParams::apply(worky_deployment).force();
+                let patch = serde_yaml::to_vec(&build_patch_deployment_request(&deployment_replicas)).unwrap();
+                deployments.patch(worky_deployment, &params, patch).await?;
             }
         }
         Err(_) => {
@@ -36,7 +31,7 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
             deployments.create(&PostParams::default(), &deployment).await.unwrap(); // Check if it exists, if it does then we scale
 
             let lp = ListParams::default()
-                .fields(&format!("metadata.name={}", "worky"))
+                .fields(&format!("metadata.name={}", worky_deployment))
                 .timeout(10);
             let mut stream = deployments.watch(&lp, "0").await?.boxed();
 
@@ -59,6 +54,16 @@ pub async fn create_workers(rx: std::sync::mpsc::Receiver<(i32, PathBuf)>) -> Re
     }
 
     Ok(())
+}
+
+fn build_patch_deployment_request(deployment_replicas: &i32) -> Value {
+    serde_json::json!({
+                        "apiVersion": "apps/v1",
+                        "kind": "Deployment",
+                        "spec": {
+                           "replicas": deployment_replicas
+                        }
+                    })
 }
 
 fn build_deployment_request() -> Result<Deployment, Error> {
