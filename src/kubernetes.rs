@@ -63,8 +63,11 @@ async fn watch_deployment(deployments: Api<Deployment>) -> Result<i32, Error> {
                 let status = o.status.as_ref().expect("status exists on deployment");
                 let replicas = status.available_replicas.clone().unwrap_or_default();
                 let unavailable = status.unavailable_replicas.clone().unwrap_or_default();
-                log::trace!("Modified: {}, current available replicas: {}, unavailable: {}", Meta::name(&o), replicas, unavailable);
-                available_result = Ok(replicas)
+                log::debug!("Modified: {}, current available replicas: {}, unavailable: {}", Meta::name(&o), replicas, unavailable);
+                available_result = Ok(replicas);
+                if unavailable == 0 && replicas > 0 {
+                    break;
+                }
             }
             WatchEvent::Deleted(o) => log::trace!("Deleted {}", Meta::name(&o)),
             WatchEvent::Error(e) => {
