@@ -33,7 +33,7 @@ pub async fn create_workers(opts: &Opts) -> Result<i32, Error> {
             }
         }
         Err(_) => {
-            let deployment = build_deployment_request()?;
+            let deployment = build_deployment_request(&opts.workers)?;
             deployments.create(&PostParams::default(), &deployment).await?;
         }
     }
@@ -90,11 +90,11 @@ fn build_patch_deployment_request(deployment_replicas: &i32) -> Value {
 }
 
 //TODO tidy this up better
-fn build_deployment_request() -> Result<Deployment, SerdeError> {
+fn build_deployment_request(replicas: &i32) -> Result<Deployment, SerdeError> {
     serde_json::from_value(serde_json::json!({
   "kind": "Deployment",
   "spec": {
-    "replicas": 10,
+    "replicas": replicas,
     "template": {
       "spec": {
         "volumes" : [
