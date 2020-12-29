@@ -108,7 +108,7 @@ fn build_deployment_request() -> Result<Deployment, SerdeError> {
         ],
         "containers": [
           {
-            "image": "awesomeibex/worky:latest",
+            "image": "awesomeibex/queuey:latest",
             "name": "worky",
             "volumeMounts": [
               {
