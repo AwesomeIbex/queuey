@@ -33,7 +33,7 @@ pub async fn create_workers(opts: &Opts) -> Result<i32, Error> {
             }
         }
         Err(_) => {
-            let deployment = build_deployment_request(&opts.workers)?;
+            let deployment = build_deployment_request(&opts)?;
             deployments.create(&PostParams::default(), &deployment).await?;
         }
     }
@@ -90,18 +90,18 @@ fn build_patch_deployment_request(deployment_replicas: &i32) -> Value {
 }
 
 //TODO tidy this up better
-fn build_deployment_request(replicas: &i32) -> Result<Deployment, SerdeError> {
+fn build_deployment_request(opts: &Opts) -> Result<Deployment, Error> {
     serde_json::from_value(serde_json::json!({
   "kind": "Deployment",
   "spec": {
-    "replicas": replicas,
+    "replicas": opts.workers,
     "template": {
       "spec": {
         "volumes" : [
             {
                 "name": "queuey",
                 "hostPath": {
-                    "path": "/tmp/queuey-k8s",
+                    "path": opts.jobs_path.to_str().context("Failed to write the jobs path as a string")?,
                     "type": "DirectoryOrCreate"
                 }
             }
@@ -118,11 +118,11 @@ fn build_deployment_request(replicas: &i32) -> Result<Deployment, SerdeError> {
             ],
             "resources": {
               "requests": {
-                "cpu": "80m",
+                "cpu": "64m",
                 "memory": "128Mi"
               },
               "limits": {
-                "cpu": "80m",
+                "cpu": "64m",
                 "memory": "128Mi"
               }
             }
@@ -167,5 +167,5 @@ fn build_deployment_request(replicas: &i32) -> Result<Deployment, SerdeError> {
     "namespace": "default",
     "name": "worky"
   }
-}))
+})).context("Failed to read kubernetes deployment")
 }
