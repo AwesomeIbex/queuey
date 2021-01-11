@@ -18,7 +18,7 @@ pub async fn create_workers(opts: &Opts) -> Result<i32, Error> {
     let mut should_watch = true;
     match deployments.get(WORKY_DEPLOYMENT).await {
         Ok(exists) => {
-            log::trace!("Deployment already exists, checking scale..");
+            log::info!("Deployment already exists, checking scale..");
             let deployment_replicas = opts.workers;
             if exists
                 .spec.context("Spec does not exist")?
@@ -112,7 +112,7 @@ fn build_deployment_request(opts: &Opts) -> Result<Deployment, Error> {
         "containers": [
           {
             "image": "awesomeibex/queuey:latest",
-            "name": "worky",
+            "name": WORKY_DEPLOYMENT,
             "volumeMounts": [
               {
                 "mountPath": "/tmp/queuey",
@@ -152,14 +152,14 @@ fn build_deployment_request(opts: &Opts) -> Result<Deployment, Error> {
       },
       "metadata": {
         "labels": {
-          "k8s-app": "worky",
+          "k8s-app": WORKY_DEPLOYMENT,
           "version": "v0.0.1"
         }
       }
     },
     "selector": {
       "matchLabels": {
-        "k8s-app": "worky",
+        "k8s-app": WORKY_DEPLOYMENT,
         "version": "v0.0.1"
       }
     }
@@ -167,11 +167,11 @@ fn build_deployment_request(opts: &Opts) -> Result<Deployment, Error> {
   "apiVersion": "apps/v1",
   "metadata": {
     "labels": {
-      "k8s-app": "worky",
+      "k8s-app": WORKY_DEPLOYMENT,
       "version": "v0.0.1"
     },
     "namespace": "default",
-    "name": "worky"
+    "name": WORKY_DEPLOYMENT
   }
 })).context("Failed to read kubernetes deployment")
 }

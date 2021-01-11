@@ -1,6 +1,6 @@
-URL=http://e4796777c1e1.ngrok.io
+URL=http://localhost:8000
 curl $URL
 
-#for (( i = 0; i < 100; i++ )); do
-#    mkdir WORKER_$i
+#for (( i = 0; i < 500; i++ )); do
+#    nohup worky &
 #done

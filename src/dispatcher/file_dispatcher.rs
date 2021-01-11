@@ -36,7 +36,7 @@ impl FileJob {
 
 impl DispatcherManager for FileJob {
     fn dispatch(&self) {
-        let directory = std::fs::read_dir(&self.jobs_path).expect("Failed to read job_path"); //TODO dont do this
+        let directory = std::fs::read_dir(&self.jobs_path).expect("Failed to read job_path");
         let workers = directory
             .filter(|directory| directory.is_ok())
             .map(|directory| directory.unwrap())
@@ -44,8 +44,6 @@ impl DispatcherManager for FileJob {
             .map(|directory| directory.file_name().into_string().unwrap())
             .filter(|directory| directory.starts_with(&WORKER_PREFIX))
             .collect::<Vec<String>>();
-
-        // TODO do we have enough, if not batch them/create them
 
         // TODO move me
         let mut options = CopyOptions::new();
@@ -57,9 +55,7 @@ impl DispatcherManager for FileJob {
             std::fs::create_dir_all(&path).unwrap();
             println!("Copying {:?} to {}", self.script_path, path);
 
-            // write script file & job file to directory with key to determine we need to complete it
             copy_items(&[&self.script_path], path, &options).unwrap();
-            // make sure permissions are correct
         })
     }
 }
